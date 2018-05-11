@@ -242,6 +242,11 @@ static const CGFloat SVProgressHUDLabelSpacing = 8.0f;
     [self setDefaultMaskType:existingMaskType];
 }
 
++ (void)showObservingProgress:(NSProgress*)progress {
+    [progress addObserver:[self sharedView] forKeyPath:@"totalUnitCount" options:NSKeyValueObservingOptionInitial|NSKeyValueObservingOptionNew context:nil];
+    [progress addObserver:[self sharedView] forKeyPath:@"completedUnitCount" options:NSKeyValueObservingOptionNew context:nil];
+    [progress addObserver:[self sharedView] forKeyPath:@"cancelled" options:NSKeyValueObservingOptionNew context:nil];
+}
 
 #pragma mark - Show, then automatically dismiss methods
 
@@ -590,6 +595,35 @@ static const CGFloat SVProgressHUDLabelSpacing = 8.0f;
     }
 }
 
+#pragma mark - NSProgress KVO
+
+- (void)observeValueForKeyPath:(NSString *)keyPath ofObject:(NSProgress *)progress change:(NSDictionary<NSKeyValueChangeKey,id> *)change context:(void *)context {
+
+    dispatch_async(dispatch_get_main_queue(), ^{
+
+        if(progress.cancelled || progress.fractionCompleted >= 1.0) {
+            [progress removeObserver:self forKeyPath:@"totalUnitCount"];
+            [progress removeObserver:self forKeyPath:@"completedUnitCount"];
+            [self dismissWithDelay:0.5 completion:nil];
+            return;
+        }
+
+        if(progress.totalUnitCount == 0 && progress.completedUnitCount == 0) {
+            if(progress.localizedDescription.length) {
+                [self.class showWithStatus:progress.localizedDescription];
+            } else {
+                [self.class show];
+            }
+            return;
+        }
+
+        if(progress.localizedDescription.length) {
+            [self showProgress:progress.fractionCompleted status:progress.localizedDescription];
+        } else {
+            [self.class showProgress:progress.fractionCompleted];
+        }
+    });
+}
 
 #pragma mark - Notifications and their handling
 
