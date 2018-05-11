@@ -16,6 +16,10 @@
 @end
 
 @implementation ViewController
+{
+    NSProgress* progressObject;
+    NSTimer* progressTimer;
+}
 
 
 #pragma mark - ViewController lifecycle
@@ -68,7 +72,6 @@
     }
 }
 
-
 #pragma mark - Show Methods Sample
 
 - (void)show {
@@ -105,6 +108,22 @@ static float progress = 0.0f;
     }
 }
 
+- (IBAction)showObservingProgress:(id)sender {
+    progressObject = [NSProgress progressWithTotalUnitCount:100];
+    progressObject.localizedDescription = @"Downloading…";
+    [SVProgressHUD showObservingProgress:progressObject];
+    progressTimer = [NSTimer scheduledTimerWithTimeInterval:0.1 repeats:YES block:^(NSTimer * _Nonnull timer) {
+        if ( progressObject.fractionCompleted < 1.0 )
+        {
+            progressObject.completedUnitCount++;
+        }
+        else
+        {
+            [progressTimer invalidate];
+            progressTimer = nil;
+        }
+    }];
+}
 
 #pragma mark - Dismiss Methods Sample
 
